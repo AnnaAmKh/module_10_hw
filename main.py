@@ -1,5 +1,5 @@
 from collections import UserDict
-
+from datetime import datetime, timedelta
 class Field:
     def __init__(self, value):
         self.value = value
@@ -21,10 +21,41 @@ class Phone(Field):
     def validate_phone(value):
         return len(value) == 10 and value.isdigit()
 
+class Birthday(Field):
+    def __init__(self, value=None):
+        if value and not self.validate_birthday(value):
+            raise ValueError("Invalid birthday format")
+        super().__init__(value)
+
+    def set_value(self, value):
+        if value and not self.validate_birthday(value):
+            raise ValueError("Invalid birthday format")
+        super().set_value(value)
+
+    @staticmethod
+    def validate_birthday(value):
+        try:
+            datetime.strptime(value, '%Y-%m-%d')
+            return True
+        except ValueError:
+            return False
+
+    def days_to_birthday(self):
+        if self.value:
+            dob = datetime.strptime(self.value, '%Y-%m-%d')
+            today = datetime.now()
+            next_birthday = datetime(today.year, dob.month, dob.day)
+            if today > next_birthday:
+                next_birthday = datetime(today.year + 1, dob.month, dob.day)
+            return (next_birthday - today).days
+        else:
+            return None
+
 class Record:
-    def __init__(self, name):
+    def __init__(self, name, birthday=None):
         self.name = Name(name)
         self.phones = []
+        self.birthday = Birthday(birthday)
 
     def add_phone(self, phone):
         new_phone = Phone(phone)
@@ -67,6 +98,9 @@ class Record:
         phone_list = '; '.join(str(phone) for phone in self.phones)
         return f"Contact name: {self.name.value}, phones: {phone_list}"
 
+    def days_to_birthday(self):
+        return self.birthday.days_to_birthday() if self.birthday else None
+
 class AddressBook(UserDict):
     def __init__(self):
         self.data = {}
@@ -92,3 +126,7 @@ class AddressBook(UserDict):
             print(f"Record for {name} has been deleted from the address book.")
         else:
             print(f"Record for {name} not found in the address book.")
+    def iterator(self, batch_size):
+        keys = list(self.data.keys())
+        for i in range(0, len(keys), batch_size):
+            yield [self.data[key] for key in keys[i:i+batch_size]]
