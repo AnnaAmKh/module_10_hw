@@ -31,7 +31,6 @@ class Birthday(Field):
         if value and not self.validate_birthday(value):
             raise ValueError("Invalid birthday format")
         super().set_value(value)
-
     @staticmethod
     def validate_birthday(value):
         try:
